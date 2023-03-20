@@ -1,45 +1,57 @@
 import express from "express";
-import products from "../data/data.js";
+import config from "../data/config.js";
+import sql from "mssql";
+import verify from "./verifyToken.js";
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.send(products);
+router.get("/", verify, async (req, res) => {
+  const pool = await sql.connect(config);
+  const result = await pool.request().query(`
+    SELECT * FROM PRODUCTS
+`);
+
+  res.send(result.recordset);
 });
 
-router.get("/:id", (req, res) => {
-  const result = products.find(
-    (product) => product.id === parseInt(req.params.id)
-  );
-  res.send(result);
+router.get("/:id", verify, async (req, res) => {
+  const id = req.params.id;
+  const pool = await sql.connect(config);
+  const result = await pool.request().query(`
+    SELECT * FROM PRODUCTS WHERE id=${parseInt(id)}
+  `);
+  res.send(result.recordset[0]);
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { name } = req.body;
-  products.push({ id: 3, name: name });
+  const pool = await sql.connect(config);
+  const request = new sql.Request(pool);
+  request.input("name", sql.VarChar(50), name);
+  const query = `INSERT INTO PRODUCTS (name) values (@name)`;
+  const result = await request.query(query);
+
   res.status(200).send({ message: "Product Succesfully Added!" });
 });
 
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   const { name } = req.body;
-  const productIndex = products.findIndex((product) => product.id === id);
-  if (productIndex === -1) {
-    return res.status(404).send({ message: "Product not found" });
-  }
-  products[productIndex] = { ...products[productIndex], name };
-  res.status(200).send({ message: "Product added successfully." });
+  const pool = await sql.connect(config);
+
+  const request = new sql.Request(pool);
+  request.input("name", sql.VarChar(50), name);
+  const query = `UPDATE PRODUCTS SET name=@name WHERE id=${id}`;
+  const result = await request.query(query);
+  res.status(200).send({ message: "Product updated successfully." });
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
-  const productIndex = products.findIndex(
-    (product) => product.id === parseInt(id)
-  );
-  if (productIndex === -1) {
-    return res.status(404).send("Product not found");
-  }
-  products.splice(productIndex, 1);
+  const pool = await sql.connect(config);
+  const result = await pool.request().query(`
+    DELETE FROM PRODUCTS WHERE id=${id}
+  `);
   res.status(200).send({ message: "Product succesfully deleted" });
 });
 
