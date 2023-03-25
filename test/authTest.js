@@ -9,7 +9,7 @@ describe("POST /login", () => {
     chai
       .request("http://127.0.0.1:9000/auth")
       .post("/")
-      .send({ name: "admin", password: "admin" })
+      .send({ name: "admin1", password: "admin1" })
       .end((err, res) => {
         expect(err).to.be.null;
         expect(res).to.have.status(200);
@@ -21,11 +21,24 @@ describe("POST /login", () => {
     chai
       .request("http://127.0.0.1:9000/auth")
       .post("/")
-      .send({ name: "foo", password: "bar" })
+      .send({ name: "foospecial", password: "barspecial" })
       .end((err, res) => {
         expect(err).to.be.null;
         expect(res).to.have.status(400);
         expect(res.text).to.equal("User not found");
+        done();
+      });
+  });
+
+  it("Should register new user successfully", (done) => {
+    chai
+      .request("http://127.0.0.1:9000/auth/newuser")
+      .post("/")
+      .send({ name: "admin221", password: "admin221" })
+      .end((err, res) => {
+        expect(err).to.be.null;
+        expect(res).to.have.status(200);
+        expect(res.body).to.deep.equal({ message: "User successfully added!" });
         done();
       });
   });
